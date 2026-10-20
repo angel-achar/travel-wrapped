@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+.pytest_cache/
+travel.db
+.agents/
+.claude/
+skills-lock.json
+.env*
+test_main.py

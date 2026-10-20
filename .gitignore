@@ -1,0 +1,12 @@
+# Scratch files kept out of the repo
+frontend/app/Untitled-1.ipynb
+frontend/app/public class Main {.java
+
+# Local settings and secrets
+.env*
+.vercel
+
+# Added by the Vercel CLI
+backend/.agents/
+backend/.claude/
+backend/skills-lock.json

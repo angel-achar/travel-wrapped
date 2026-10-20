@@ -1,0 +1,6 @@
+venv/
+travel.db
+__pycache__/
+.pytest_cache/
+.vercel
+.env*

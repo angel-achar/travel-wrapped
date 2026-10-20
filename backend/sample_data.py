@@ -1,0 +1,116 @@
+"""Demo data for the "Load sample data" button.
+
+It gives a brand-new workspace a realistic travel history (several continents,
+a few years of trips) so the dashboard, Wrapped, and recommendations pages
+have something to show.
+"""
+
+# Countries visited outside of any trip below (trip countries get added
+# automatically when the trips are saved).
+SAMPLE_COUNTRIES = [
+    {"name": "Canada", "visited_date": "2023-08-12", "cities": ["Vancouver", "Whistler"]},
+    {"name": "Spain", "visited_date": "2023-07-05", "cities": ["Barcelona", "Madrid"]},
+    {"name": "Thailand", "visited_date": "2023-12-20", "cities": ["Bangkok", "Chiang Mai"]},
+]
+
+SAMPLE_TRIPS = [
+    {
+        "title": "Iceland Ring Road",
+        "start_date": "2026-07-01",
+        "end_date": "2026-07-10",
+        "countries": ["Iceland"],
+        "cities": ["Reykjavik", "Vik", "Akureyri"],
+        "hotels": ["Hotel Ranga"],
+        "restaurants": ["Baejarins Beztu Pylsur"],
+        "activities": ["Glacier hike", "Blue Lagoon", "Whale watching"],
+        "notes": "Drove the whole ring road in a camper van. Saw the midnight sun.",
+    },
+    {
+        "title": "Lisbon Long Weekend",
+        "start_date": "2026-04-17",
+        "end_date": "2026-04-20",
+        "countries": ["Portugal"],
+        "cities": ["Lisbon", "Sintra"],
+        "hotels": [],
+        "restaurants": ["Time Out Market"],
+        "activities": ["Tram 28", "Pena Palace"],
+        "notes": "Ate way too many pasteis de nata.",
+    },
+    {
+        "title": "Spring in Japan",
+        "start_date": "2025-03-14",
+        "end_date": "2025-03-24",
+        "countries": ["Japan"],
+        "cities": ["Tokyo", "Kyoto", "Osaka"],
+        "hotels": ["Park Hyatt Tokyo", "Ryokan Yachiyo"],
+        "restaurants": ["Ichiran Ramen", "Nishiki Market"],
+        "activities": ["Cherry blossom viewing", "Fushimi Inari hike", "teamLab Planets"],
+        "notes": "Cherry blossoms were at full bloom in Kyoto.",
+    },
+    {
+        "title": "Mexico City New Year",
+        "start_date": "2025-01-02",
+        "end_date": "2025-01-07",
+        "countries": ["Mexico"],
+        "cities": ["Mexico City", "Teotihuacan"],
+        "hotels": ["Casa Polanco"],
+        "restaurants": ["Contramar", "El Huequito"],
+        "activities": ["Hot air balloon ride", "Frida Kahlo Museum"],
+        "notes": "Best tacos al pastor of my life.",
+    },
+    {
+        "title": "Morocco Road Trip",
+        "start_date": "2025-09-08",
+        "end_date": "2025-09-15",
+        "countries": ["Morocco"],
+        "cities": ["Marrakech", "Fes", "Merzouga"],
+        "hotels": ["Riad Yasmine"],
+        "restaurants": ["Cafe Clock"],
+        "activities": ["Sahara camel trek", "Medina food tour"],
+        "notes": "Slept under the stars in the Sahara.",
+    },
+    {
+        "title": "Europe Summer",
+        "start_date": "2024-06-10",
+        "end_date": "2024-06-24",
+        "countries": ["France", "Italy"],
+        "cities": ["Paris", "Nice", "Rome", "Florence"],
+        "hotels": ["Hotel des Grands Boulevards"],
+        "restaurants": ["Da Enzo al 29", "Le Comptoir du Pantheon"],
+        "activities": ["Louvre", "Colosseum tour", "Cooking class in Florence"],
+        "notes": "Took the train from Nice to Rome.",
+    },
+    {
+        "title": "Seoul and Busan",
+        "start_date": "2024-10-02",
+        "end_date": "2024-10-08",
+        "countries": ["South Korea"],
+        "cities": ["Seoul", "Busan"],
+        "hotels": [],
+        "restaurants": ["Gwangjang Market"],
+        "activities": ["Gyeongbokgung Palace", "Gamcheon Culture Village"],
+        "notes": "",
+    },
+    {
+        "title": "Inca Trail",
+        "start_date": "2024-03-22",
+        "end_date": "2024-03-31",
+        "countries": ["Peru"],
+        "cities": ["Lima", "Cusco"],
+        "hotels": [],
+        "restaurants": ["Central"],
+        "activities": ["Machu Picchu", "Rainbow Mountain"],
+        "notes": "Four days of hiking to Machu Picchu.",
+    },
+    {
+        "title": "Sydney Summer",
+        "start_date": "2023-02-10",
+        "end_date": "2023-02-20",
+        "countries": ["Australia"],
+        "cities": ["Sydney", "Melbourne"],
+        "hotels": [],
+        "restaurants": [],
+        "activities": ["Bondi to Coogee walk", "Great Ocean Road"],
+        "notes": "",
+    },
+]
