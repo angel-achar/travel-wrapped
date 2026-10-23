@@ -588,7 +588,8 @@ def add_country(country: CountryCreate, workspace: str = Depends(get_workspace))
     # official spelling, so "japan" is stored as "Japan".
     name = official_country_name(country.name)
     cities = clean_list(country.cities)
-    visited_date = country.visited_date.isoformat() if country.visited_date else None
+    # No date given: use today, so the country and its new trip match.
+    visited_date = country.visited_date.isoformat() if country.visited_date else date.today().isoformat()
     notes = check_country_notes(country.notes)
 
     conn = get_connection()
@@ -601,6 +602,23 @@ def add_country(country: CountryCreate, workspace: str = Depends(get_workspace))
             )
 
         new_row = insert_country(conn, workspace, name, visited_date, cities, notes)
+        # Keep Been and Trips in sync: every country you add also gets a trip.
+        trip_date = visited_date
+        insert_trip(
+            conn,
+            workspace,
+            {
+                "title": f"Trip to {name}",
+                "start_date": trip_date,
+                "end_date": trip_date,
+                "countries": name,
+                "cities": ",".join(cities),
+                "hotels": "",
+                "restaurants": "",
+                "activities": "",
+                "notes": notes,
+            },
+        )
         conn.commit()
         return country_with_trips(conn, workspace, new_row)
     finally:

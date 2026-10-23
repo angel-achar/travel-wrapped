@@ -225,7 +225,76 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 
 // Finds a country by name, ignoring capitals and extra spaces.
 // Returns undefined if the name isn't in the list.
+// Common names people type, mapped to the official spelling. Keys are written
+// the way normalizeName() leaves them (lowercase, no dots or apostrophes).
+// Keep this in sync with ALIASES in backend/world.py.
+const ALIASES: Record<string, string> = {
+  usa: "United States",
+  us: "United States",
+  "united states of america": "United States",
+  america: "United States",
+  uk: "United Kingdom",
+  "great britain": "United Kingdom",
+  britain: "United Kingdom",
+  england: "United Kingdom",
+  scotland: "United Kingdom",
+  wales: "United Kingdom",
+  "northern ireland": "United Kingdom",
+  holland: "Netherlands",
+  korea: "South Korea",
+  "republic of korea": "South Korea",
+  dprk: "North Korea",
+  uae: "United Arab Emirates",
+  emirates: "United Arab Emirates",
+  "cote divoire": "Ivory Coast",
+  "cote d ivoire": "Ivory Coast",
+  "czech republic": "Czechia",
+  drc: "Democratic Republic of the Congo",
+  "dr congo": "Democratic Republic of the Congo",
+  "congo kinshasa": "Democratic Republic of the Congo",
+  congo: "Republic of the Congo",
+  "congo brazzaville": "Republic of the Congo",
+  burma: "Myanmar",
+  swaziland: "Eswatini",
+  macedonia: "North Macedonia",
+  "east timor": "Timor-Leste",
+  "cape verde": "Cabo Verde",
+  vatican: "Vatican City",
+  "holy see": "Vatican City",
+  turkiye: "Turkey",
+  bosnia: "Bosnia and Herzegovina",
+  trinidad: "Trinidad and Tobago",
+  "russian federation": "Russia",
+  "viet nam": "Vietnam",
+  "lao pdr": "Laos",
+  "federated states of micronesia": "Micronesia",
+  png: "Papua New Guinea",
+  nz: "New Zealand",
+};
+
+// Makes a country name easy to compare: "  The U.S.A. " -> "usa", "Côte d'Ivoire" -> "cote divoire".
+export function normalizeName(name: string): string {
+  let text = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // drop accents
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/-/g, " ")
+    .replace(/[.,'’]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.startsWith("the ")) text = text.slice(4);
+  if (text.startsWith("st ")) text = "saint " + text.slice(3);
+  return text;
+}
+
+// Finds a country, ignoring capitals, extra spaces, accents, and punctuation,
+// and understanding common nicknames (so "usa" finds "United States").
 export function findCountry(name: string): WorldCountry | undefined {
-  const wanted = name.trim().toLowerCase();
-  return WORLD_COUNTRIES.find((country) => country.name.toLowerCase() === wanted);
+  const wanted = normalizeName(name);
+  if (wanted === "") return undefined;
+  const exact = WORLD_COUNTRIES.find((country) => normalizeName(country.name) === wanted);
+  if (exact) return exact;
+  const alias = ALIASES[wanted];
+  return alias ? WORLD_COUNTRIES.find((country) => country.name === alias) : undefined;
 }

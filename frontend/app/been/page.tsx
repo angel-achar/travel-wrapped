@@ -107,7 +107,7 @@ export default function BeenPage() {
   const visibleCountries = filterCountries(countries, search, continent);
 
   return (
-    <PageLayout title="Been Tracker" subtitle="Every country you've visited. Trips you log are added here automatically.">
+    <PageLayout title="Been Tracker" subtitle="Every country you've visited. Adding a country also adds a trip, and trips you log show up here.">
       {/* Loading state */}
       {status === "loading" && <LoadingState message="Loading your countries…" />}
 

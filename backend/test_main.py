@@ -214,7 +214,7 @@ def test_countries_list_their_trips(client):
 def test_country_notes_can_be_added_and_edited(client):
     added = client.post("/api/countries", json={"name": "Peru", "notes": " Machu Picchu! "}, headers=ALICE).json()
     assert added["notes"] == "Machu Picchu!"
-    assert added["trips"] == []
+    assert [t["title"] for t in added["trips"]] == ["Trip to Peru"]
 
     updated = client.put(
         f"/api/countries/{added['id']}",
@@ -307,8 +307,9 @@ def test_stats_by_continent_and_trips(client):
     assert stats["percent_of_world"] == 2.1  # 4 / 195 * 100 = 2.05 -> 2.1
     assert stats["continents_visited"] == 3
     assert stats["top_continent"] == "Asia"
-    assert stats["total_trips"] == 2
-    assert stats["total_trip_days"] == 14
+    # Each added country also gets a 1-day trip: 3 of those + the 2 trips above.
+    assert stats["total_trips"] == 5
+    assert stats["total_trip_days"] == 17
     assert stats["cities_visited"] == 3  # Tokyo, Kyoto, Lima
 
     counts = {}
@@ -428,3 +429,55 @@ def test_old_database_is_upgraded(tmp_path, monkeypatch):
     # New workspaces don't see it, and can add their own countries.
     assert client.get("/api/countries", headers=ALICE).json() == []
     assert client.post("/api/countries", json={"name": "Japan"}, headers=ALICE).status_code == 201
+
+
+def test_country_names_are_forgiving(client):
+    cases = {
+        "usa": "United States",
+        "U.S.A.": "United States",
+        "  the uk ": "United Kingdom",
+        "England": "United Kingdom",
+        "Korea": "South Korea",
+        "Côte d'Ivoire": "Ivory Coast",
+        "czech republic": "Czechia",
+        "The Gambia": "Gambia",
+        "guinea bissau": "Guinea-Bissau",
+        "St Lucia": "Saint Lucia",
+        "Bosnia & Herzegovina": "Bosnia and Herzegovina",
+    }
+    for typed, official in cases.items():
+        assert main.find_country(typed) == official, typed
+
+    added = client.post("/api/countries", json={"name": "usa"}, headers=ALICE).json()
+    assert added["name"] == "United States"
+    assert added["continent"] == "North America"
+
+    trip = client.post("/api/trips", json=trip_body(countries=["england"]), headers=ALICE).json()
+    assert trip["countries"] == ["United Kingdom"]
+
+    # Still rejects things that aren't countries.
+    assert client.post("/api/countries", json={"name": "Narnia"}, headers=ALICE).status_code == 400
+
+
+def test_adding_a_country_also_adds_a_trip(client):
+    added = client.post(
+        "/api/countries",
+        json={"name": "Kenya", "visited_date": "2025-08-01", "cities": "Nairobi", "notes": "Safari!"},
+        headers=ALICE,
+    ).json()
+    trips = client.get("/api/trips", headers=ALICE).json()
+    assert len(trips) == 1
+    trip = trips[0]
+    assert trip["title"] == "Trip to Kenya"
+    assert trip["countries"] == ["Kenya"]
+    assert trip["start_date"] == trip["end_date"] == "2025-08-01"
+    assert trip["cities"] == ["Nairobi"]
+    assert trip["notes"] == "Safari!"
+    assert added["trips"][0]["id"] == trip["id"]
+
+    # No date given: the trip is dated today.
+    client.post("/api/countries", json={"name": "Ghana"}, headers=ALICE)
+    ghana_trip = next(t for t in client.get("/api/trips", headers=ALICE).json() if t["countries"] == ["Ghana"])
+    assert ghana_trip["start_date"] == main.date.today().isoformat()
+    ghana = next(c for c in client.get("/api/countries", headers=ALICE).json() if c["name"] == "Ghana")
+    assert ghana["visited_date"] == main.date.today().isoformat()

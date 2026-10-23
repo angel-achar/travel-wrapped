@@ -18,6 +18,20 @@ describe("worldCountries", () => {
   it("finds countries ignoring capitals and spaces", () => {
     expect(findCountry("  south KOREA ")?.name).toBe("South Korea");
     expect(findCountry("Narnia")).toBeUndefined();
+    expect(findCountry("")).toBeUndefined();
+  });
+
+  it("understands nicknames, accents, and punctuation", () => {
+    expect(findCountry("usa")?.name).toBe("United States");
+    expect(findCountry("U.S.A.")?.name).toBe("United States");
+    expect(findCountry("  the uk ")?.name).toBe("United Kingdom");
+    expect(findCountry("England")?.name).toBe("United Kingdom");
+    expect(findCountry("Korea")?.name).toBe("South Korea");
+    expect(findCountry("Côte d'Ivoire")?.name).toBe("Ivory Coast");
+    expect(findCountry("The Gambia")?.name).toBe("Gambia");
+    expect(findCountry("guinea bissau")?.name).toBe("Guinea-Bissau");
+    expect(findCountry("St Lucia")?.name).toBe("Saint Lucia");
+    expect(findCountry("Bosnia & Herzegovina")?.name).toBe("Bosnia and Herzegovina");
   });
 });
 

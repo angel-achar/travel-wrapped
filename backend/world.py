@@ -4,6 +4,8 @@ and the continent each one belongs to.
 The frontend has a copy of this same list in frontend/lib/worldCountries.ts.
 If you change one, change the other.
 """
+import unicodedata
+
 
 CONTINENTS = [
     "Africa",
@@ -220,16 +222,82 @@ COUNTRY_CONTINENTS = {
 }
 
 
+# Common names people type, mapped to the official spelling. Keys are written
+# the way normalize_name() leaves them (lowercase, no dots or apostrophes).
+# Keep this in sync with ALIASES in frontend/lib/worldCountries.ts.
+ALIASES = {
+    "usa": "United States",
+    "us": "United States",
+    "united states of america": "United States",
+    "america": "United States",
+    "uk": "United Kingdom",
+    "great britain": "United Kingdom",
+    "britain": "United Kingdom",
+    "england": "United Kingdom",
+    "scotland": "United Kingdom",
+    "wales": "United Kingdom",
+    "northern ireland": "United Kingdom",
+    "holland": "Netherlands",
+    "korea": "South Korea",
+    "republic of korea": "South Korea",
+    "dprk": "North Korea",
+    "uae": "United Arab Emirates",
+    "emirates": "United Arab Emirates",
+    "cote divoire": "Ivory Coast",
+    "cote d ivoire": "Ivory Coast",
+    "czech republic": "Czechia",
+    "drc": "Democratic Republic of the Congo",
+    "dr congo": "Democratic Republic of the Congo",
+    "congo kinshasa": "Democratic Republic of the Congo",
+    "congo": "Republic of the Congo",
+    "congo brazzaville": "Republic of the Congo",
+    "burma": "Myanmar",
+    "swaziland": "Eswatini",
+    "macedonia": "North Macedonia",
+    "east timor": "Timor-Leste",
+    "cape verde": "Cabo Verde",
+    "vatican": "Vatican City",
+    "holy see": "Vatican City",
+    "turkiye": "Turkey",
+    "bosnia": "Bosnia and Herzegovina",
+    "trinidad": "Trinidad and Tobago",
+    "russian federation": "Russia",
+    "viet nam": "Vietnam",
+    "lao pdr": "Laos",
+    "federated states of micronesia": "Micronesia",
+    "png": "Papua New Guinea",
+    "nz": "New Zealand",
+}
+
+
+def normalize_name(name: str) -> str:
+    """Make a country name easy to compare: "  The U.S.A. " -> "usa", "Côte d'Ivoire" -> "cote divoire"."""
+    text = unicodedata.normalize("NFD", name)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))  # drop accents
+    text = text.lower().replace("&", " and ").replace("-", " ")
+    for ch in ".,'’":
+        text = text.replace(ch, "")
+    text = " ".join(text.split())  # trim and collapse spaces
+    if text.startswith("the "):
+        text = text[4:]
+    if text.startswith("st "):
+        text = "saint " + text[3:]
+    return text
+
+
 def find_country(name: str) -> str | None:
     """Return the official spelling of a country, or None if it's not in the list.
 
-    The match ignores capitals and extra spaces, so " japan " finds "Japan".
+    Ignores capitals, extra spaces, accents, and punctuation, and understands
+    common nicknames, so " usa " finds "United States".
     """
-    wanted = name.strip().lower()
+    wanted = normalize_name(name)
+    if wanted == "":
+        return None
     for country in COUNTRY_CONTINENTS:
-        if country.lower() == wanted:
+        if normalize_name(country) == wanted:
             return country
-    return None
+    return ALIASES.get(wanted)
 
 
 def continent_of(name: str) -> str:

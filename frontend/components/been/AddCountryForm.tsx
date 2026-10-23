@@ -92,7 +92,7 @@ export default function AddCountryForm({ onAdd }: AddCountryFormProps) {
 
       <div>
         <label htmlFor="visited-date" className="block text-sm font-semibold text-purple-900">
-          Date visited (optional)
+          Date visited (optional, today if blank)
         </label>
         <input
           id="visited-date"
