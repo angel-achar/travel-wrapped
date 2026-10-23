@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/StatusViews";
 import WrappedCard from "@/components/wrapped/WrappedCard";
+import WrappedStory from "@/components/wrapped/WrappedStory";
 import { errorMessage, getWrapped, type Wrapped } from "@/lib/api";
 
 type Status = "loading" | "error" | "ready";
@@ -16,6 +17,7 @@ export default function WrappedPage() {
   const [status, setStatus] = useState<Status>("loading");
   const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     getWrapped(selectedYear)
@@ -120,7 +122,16 @@ export default function WrappedPage() {
             </p>
             <p className="mt-3 text-5xl font-bold">{wrapped.personality}</p>
             <p className="mt-3 text-lg text-purple-100">{wrapped.personality_reason}</p>
+            <button
+              type="button"
+              onClick={() => setPlaying(true)}
+              className="mt-6 rounded-full bg-white px-6 py-2.5 font-semibold text-purple-800 shadow-sm transition hover:bg-pink-50"
+            >
+              ▶ Play your Wrapped
+            </button>
           </section>
+
+          {playing && <WrappedStory wrapped={wrapped} onClose={() => setPlaying(false)} />}
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <WrappedCard emoji="🧳" label="Trips taken" value={String(wrapped.trips_taken)} />
