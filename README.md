@@ -49,5 +49,6 @@ cd frontend && npm test                     # frontend
 ## What's Next
 
 - User accounts and login
+- **Travel itineraries ("Steal my itinerary")**: write a day-by-day plan for a trip and share it, so friends can copy it into their own trips and share what they did together
 - An interactive world map
 - Trip photos
