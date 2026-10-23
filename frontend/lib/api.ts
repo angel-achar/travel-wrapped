@@ -11,6 +11,15 @@ export type Country = {
   continent: string; // e.g. "Asia" ("Unknown" for old rows not in the list)
   visited_date: string | null; // "YYYY-MM-DD", or null if not given
   cities: string[];
+  notes: string;
+  trips: CountryTrip[]; // trips that went to this country, newest first
+};
+
+// A short version of a trip, listed under its country on the Been page.
+export type CountryTrip = {
+  id: number;
+  title: string;
+  start_date: string;
 };
 
 // What we send when adding a country. Only name is required.
@@ -18,6 +27,14 @@ export type NewCountry = {
   name: string;
   visited_date?: string;
   cities?: string; // comma-separated, e.g. "Tokyo, Kyoto"
+  notes?: string;
+};
+
+// What we send when editing a country (the name can't change).
+export type CountryChanges = {
+  visited_date?: string;
+  cities?: string;
+  notes?: string;
 };
 
 export type ContinentCount = {
@@ -159,6 +176,10 @@ export function getCountries(): Promise<Country[]> {
 
 export function addCountry(country: NewCountry): Promise<Country> {
   return request<Country>("/api/countries", "POST", country);
+}
+
+export function updateCountry(id: number, changes: CountryChanges): Promise<Country> {
+  return request<Country>(`/api/countries/${id}`, "PUT", changes);
 }
 
 export function deleteCountry(id: number): Promise<void> {

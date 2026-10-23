@@ -139,6 +139,8 @@ def create_tables(conn):
     # Databases made before workspaces existed don't have this column yet.
     # Old rows get 'default', so they stay in a workspace no new browser uses.
     add_column_if_missing(conn, "countries", "workspace_id", "TEXT NOT NULL DEFAULT 'default'")
+    # Notes were added later, so older databases get an empty notes column.
+    add_column_if_missing(conn, "countries", "notes", "TEXT NOT NULL DEFAULT ''")
 
     # The old index said "no two rows with the same name anywhere". Now the
     # rule is "no duplicates inside one workspace", so we swap the index.
@@ -239,6 +241,23 @@ class CountryCreate(BaseModel):
     name: str
     visited_date: date | None = None
     cities: list[str] | str | None = None
+    notes: str | None = None
+
+
+class CountryUpdate(BaseModel):
+    """What the frontend sends when editing a country (the name can't change)."""
+
+    visited_date: date | None = None
+    cities: list[str] | str | None = None
+    notes: str | None = None
+
+
+class CountryTrip(BaseModel):
+    """A short version of a trip, shown under each country on the Been page."""
+
+    id: int
+    title: str
+    start_date: str
 
 
 class Country(BaseModel):
@@ -247,6 +266,8 @@ class Country(BaseModel):
     continent: str
     visited_date: str | None
     cities: list[str]
+    notes: str
+    trips: list[CountryTrip]
 
 
 class TripInput(BaseModel):
@@ -331,6 +352,8 @@ def row_to_country(row) -> dict:
         "continent": continent_of(row["name"]),
         "visited_date": row["visited_date"],
         "cities": split_list(row["cities"]),
+        "notes": row["notes"],
+        "trips": [],
     }
 
 
@@ -385,16 +408,57 @@ def find_existing_country(conn, workspace: str, name: str):
     ).fetchone()
 
 
-def insert_country(conn, workspace: str, name: str, visited_date: str | None, cities: list[str]):
+def insert_country(
+    conn, workspace: str, name: str, visited_date: str | None, cities: list[str], notes: str = ""
+):
     # The placeholders let the database insert values safely
     # (this prevents SQL injection). RETURNING * hands back the new row.
     return conn.execute(
         sql(
-            "INSERT INTO countries (workspace_id, name, visited_date, cities) "
-            "VALUES (?, ?, ?, ?) RETURNING *"
+            "INSERT INTO countries (workspace_id, name, visited_date, cities, notes) "
+            "VALUES (?, ?, ?, ?, ?) RETURNING *"
         ),
-        (workspace, name, visited_date, ",".join(cities)),
+        (workspace, name, visited_date, ",".join(cities), notes),
     ).fetchone()
+
+
+def check_country_notes(notes: str | None) -> str:
+    cleaned = notes.strip() if notes else ""
+    if len(cleaned) > 2000:
+        raise HTTPException(status_code=400, detail="Notes must be 2000 characters or less.")
+    return cleaned
+
+
+def merge_cities(existing: list[str], new: list[str]) -> list[str]:
+    """Add new cities to a list, skipping ones already there (ignoring capitals)."""
+    merged = list(existing)
+    seen = [city.lower() for city in existing]
+    for city in new:
+        if city.lower() not in seen:
+            merged.append(city)
+            seen.append(city.lower())
+    return merged
+
+
+def trips_by_country(conn, workspace: str) -> dict:
+    """Map each country name to the trips that went there, newest first."""
+    rows = conn.execute(
+        sql("SELECT id, title, start_date, countries FROM trips WHERE workspace_id = ? ORDER BY start_date DESC, id DESC"),
+        (workspace,),
+    ).fetchall()
+    result = {}
+    for row in rows:
+        for name in split_list(row["countries"]):
+            result.setdefault(name.lower(), []).append(
+                {"id": row["id"], "title": row["title"], "start_date": row["start_date"]}
+            )
+    return result
+
+
+def country_with_trips(conn, workspace: str, row) -> dict:
+    country = row_to_country(row)
+    country["trips"] = trips_by_country(conn, workspace).get(row["name"].lower(), [])
+    return country
 
 
 def check_trip(trip: TripInput) -> dict:
@@ -431,10 +495,23 @@ def check_trip(trip: TripInput) -> dict:
 
 
 def mark_trip_countries_as_been(conn, workspace: str, values: dict):
-    """Saving a trip also adds its countries to the Been list (if they're not there yet)."""
-    for name in split_list(values["countries"]):
-        if find_existing_country(conn, workspace, name) is None:
-            insert_country(conn, workspace, name, values["start_date"], [])
+    """Saving a trip also adds its countries to the Been list (if they're not there yet).
+
+    If the trip is to just one country, its cities are added to that country too.
+    (With several countries we can't tell which city belongs where, so we skip cities.)
+    """
+    countries = split_list(values["countries"])
+    trip_cities = split_list(values["cities"]) if len(countries) == 1 else []
+    for name in countries:
+        existing = find_existing_country(conn, workspace, name)
+        if existing is None:
+            insert_country(conn, workspace, name, values["start_date"], trip_cities)
+        elif trip_cities:
+            merged = merge_cities(split_list(existing["cities"]), trip_cities)
+            conn.execute(
+                sql("UPDATE countries SET cities = ? WHERE id = ?"),
+                (",".join(merged), existing["id"]),
+            )
 
 
 def insert_trip(conn, workspace: str, values: dict):
@@ -494,7 +571,13 @@ def list_countries(workspace: str = Depends(get_workspace)):
             sql("SELECT * FROM countries WHERE workspace_id = ? ORDER BY LOWER(name)"),
             (workspace,),
         ).fetchall()
-        return [row_to_country(row) for row in rows]
+        trips = trips_by_country(conn, workspace)
+        countries = []
+        for row in rows:
+            country = row_to_country(row)
+            country["trips"] = trips.get(row["name"].lower(), [])
+            countries.append(country)
+        return countries
     finally:
         conn.close()
 
@@ -506,6 +589,7 @@ def add_country(country: CountryCreate, workspace: str = Depends(get_workspace))
     name = official_country_name(country.name)
     cities = clean_list(country.cities)
     visited_date = country.visited_date.isoformat() if country.visited_date else None
+    notes = check_country_notes(country.notes)
 
     conn = get_connection()
     try:
@@ -516,9 +600,32 @@ def add_country(country: CountryCreate, workspace: str = Depends(get_workspace))
                 status_code=409, detail=f"You already added {existing['name']}."
             )
 
-        new_row = insert_country(conn, workspace, name, visited_date, cities)
+        new_row = insert_country(conn, workspace, name, visited_date, cities, notes)
         conn.commit()
-        return row_to_country(new_row)
+        return country_with_trips(conn, workspace, new_row)
+    finally:
+        conn.close()
+
+
+@app.put("/api/countries/{country_id}", response_model=Country)
+def update_country(country_id: int, country: CountryUpdate, workspace: str = Depends(get_workspace)):
+    visited_date = country.visited_date.isoformat() if country.visited_date else None
+    cities = clean_list(country.cities)
+    notes = check_country_notes(country.notes)
+
+    conn = get_connection()
+    try:
+        updated = conn.execute(
+            sql(
+                "UPDATE countries SET visited_date = ?, cities = ?, notes = ? "
+                "WHERE id = ? AND workspace_id = ? RETURNING *"
+            ),
+            (visited_date, ",".join(cities), notes, country_id, workspace),
+        ).fetchone()
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Country not found.")
+        conn.commit()
+        return country_with_trips(conn, workspace, updated)
     finally:
         conn.close()
 

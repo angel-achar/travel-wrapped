@@ -184,6 +184,52 @@ def test_trip_countries_are_added_to_been_list(client):
     assert names == ["France", "Italy"]
 
 
+def test_one_country_trip_adds_its_cities_to_been(client):
+    # New country: created with the trip's date and cities.
+    client.post("/api/trips", json=trip_body(), headers=ALICE)
+    japan = client.get("/api/countries", headers=ALICE).json()[0]
+    assert japan["visited_date"] == "2025-03-14"
+    assert japan["cities"] == ["Tokyo", "Kyoto"]
+
+    # Existing country: new cities are added, repeats are skipped.
+    client.post("/api/trips", json=trip_body(title="Back again", cities="kyoto, Osaka"), headers=ALICE)
+    japan = client.get("/api/countries", headers=ALICE).json()[0]
+    assert japan["cities"] == ["Tokyo", "Kyoto", "Osaka"]
+
+
+def test_multi_country_trip_does_not_guess_cities(client):
+    client.post("/api/trips", json=trip_body(countries=["France", "Italy"], cities="Paris, Rome"), headers=ALICE)
+    for country in client.get("/api/countries", headers=ALICE).json():
+        assert country["cities"] == []
+
+
+def test_countries_list_their_trips(client):
+    first = client.post("/api/trips", json=trip_body(title="Spring", start_date="2024-03-01", end_date="2024-03-05"), headers=ALICE).json()
+    second = client.post("/api/trips", json=trip_body(title="Fall", start_date="2025-10-01", end_date="2025-10-05"), headers=ALICE).json()
+    japan = client.get("/api/countries", headers=ALICE).json()[0]
+    assert [t["id"] for t in japan["trips"]] == [second["id"], first["id"]]  # newest first
+    assert japan["trips"][0]["title"] == "Fall"
+
+
+def test_country_notes_can_be_added_and_edited(client):
+    added = client.post("/api/countries", json={"name": "Peru", "notes": " Machu Picchu! "}, headers=ALICE).json()
+    assert added["notes"] == "Machu Picchu!"
+    assert added["trips"] == []
+
+    updated = client.put(
+        f"/api/countries/{added['id']}",
+        json={"visited_date": "2024-06-01", "cities": "Lima, Cusco", "notes": "Go back for the food."},
+        headers=ALICE,
+    ).json()
+    assert updated["notes"] == "Go back for the food."
+    assert updated["cities"] == ["Lima", "Cusco"]
+    assert updated["visited_date"] == "2024-06-01"
+
+    # Other workspaces can't edit it.
+    assert client.put(f"/api/countries/{added['id']}", json={"notes": "hi"}, headers=BOB).status_code == 404
+    assert client.put(f"/api/countries/{added['id']}", json={"notes": "x" * 2001}, headers=ALICE).status_code == 400
+
+
 def test_trip_validation(client):
     bad_bodies = [
         trip_body(title="   "),  # blank title

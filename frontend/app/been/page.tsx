@@ -17,7 +17,9 @@ import {
   errorMessage,
   getCountries,
   getStats,
+  updateCountry,
   type Country,
+  type CountryChanges,
   type NewCountry,
   type Stats,
 } from "@/lib/api";
@@ -82,6 +84,12 @@ export default function BeenPage() {
     reload();
   }
 
+  // Passed to CountryList. If saving fails, the error goes back to the card.
+  async function handleSave(id: number, changes: CountryChanges) {
+    await updateCountry(id, changes);
+    reload();
+  }
+
   async function handleDelete(id: number) {
     setDeleteError(null);
     setDeletingId(id);
@@ -99,7 +107,7 @@ export default function BeenPage() {
   const visibleCountries = filterCountries(countries, search, continent);
 
   return (
-    <PageLayout title="Been Tracker" subtitle="Keep track of every country you've visited.">
+    <PageLayout title="Been Tracker" subtitle="Every country you've visited. Trips you log are added here automatically.">
       {/* Loading state */}
       {status === "loading" && <LoadingState message="Loading your countries…" />}
 
@@ -159,6 +167,7 @@ export default function BeenPage() {
                     countries={visibleCountries}
                     deletingId={deletingId}
                     onDelete={handleDelete}
+                    onSave={handleSave}
                   />
                 </div>
               )}

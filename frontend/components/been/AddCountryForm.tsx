@@ -16,6 +16,7 @@ export default function AddCountryForm({ onAdd }: AddCountryFormProps) {
   const [name, setName] = useState("");
   const [visitedDate, setVisitedDate] = useState("");
   const [cities, setCities] = useState("");
+  const [notes, setNotes] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,11 +46,13 @@ export default function AddCountryForm({ onAdd }: AddCountryFormProps) {
         // Send undefined (left out of the JSON) instead of empty strings.
         visited_date: visitedDate || undefined,
         cities: cities.trim() || undefined,
+        notes: notes.trim() || undefined,
       });
       // Success: clear the form for the next country.
       setName("");
       setVisitedDate("");
       setCities("");
+      setNotes("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add country.");
     } finally {
@@ -110,6 +113,20 @@ export default function AddCountryForm({ onAdd }: AddCountryFormProps) {
           value={cities}
           onChange={(event) => setCities(event.target.value)}
           placeholder="e.g. Tokyo, Kyoto"
+          className="mt-1 w-full rounded-xl border border-purple-200 px-4 py-2 text-purple-950 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="country-notes" className="block text-sm font-semibold text-purple-900">
+          Notes (optional)
+        </label>
+        <textarea
+          id="country-notes"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={3}
+          placeholder="Favorite food, a place to go back to, who you went with..."
           className="mt-1 w-full rounded-xl border border-purple-200 px-4 py-2 text-purple-950 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
         />
       </div>
