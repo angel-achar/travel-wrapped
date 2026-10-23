@@ -185,7 +185,7 @@ export default function WrappedStory({ wrapped, onClose }: WrappedStoryProps) {
           <button
             type="button"
             onClick={() => setPaused((p) => !p)}
-            className="rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold transition hover:bg-white/30"
+            className="rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold transition hover:bg-white/30 outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             {paused ? "Play" : "Pause"}
           </button>
@@ -194,7 +194,7 @@ export default function WrappedStory({ wrapped, onClose }: WrappedStoryProps) {
             type="button"
             onClick={onClose}
             aria-label="Close Wrapped"
-            className="rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold transition hover:bg-white/30"
+            className="rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold transition hover:bg-white/30 outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             ✕
           </button>
@@ -203,8 +203,8 @@ export default function WrappedStory({ wrapped, onClose }: WrappedStoryProps) {
 
       {/* Tap the left side to go back, the right side to go forward */}
       <div className="relative flex flex-1 items-center justify-center px-6">
-        <button type="button" aria-label="Previous slide" onClick={back} className="absolute inset-y-0 left-0 w-1/3 cursor-w-resize" />
-        <button type="button" aria-label="Next slide" onClick={next} className="absolute inset-y-0 right-0 w-2/3 cursor-e-resize" />
+        <button type="button" tabIndex={-1} aria-label="Previous slide" onClick={back} className="absolute inset-y-0 left-0 w-1/3 cursor-w-resize outline-none" />
+        <button type="button" tabIndex={-1} aria-label="Next slide" onClick={next} className="absolute inset-y-0 right-0 w-2/3 cursor-e-resize outline-none" />
 
         <div key={slide.key} aria-live="polite" className="wrapped-pop pointer-events-none max-w-xl text-center">
           <p className="text-6xl">{slide.emoji}</p>
