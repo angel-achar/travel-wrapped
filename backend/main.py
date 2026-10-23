@@ -653,15 +653,32 @@ def delete_country(country_id: int, workspace: str = Depends(get_workspace)):
     conn = get_connection()
     try:
         # "AND workspace_id = ?" means you can only delete your own rows.
-        cursor = conn.execute(
-            sql("DELETE FROM countries WHERE id = ? AND workspace_id = ?"),
+        country = conn.execute(
+            sql("SELECT * FROM countries WHERE id = ? AND workspace_id = ?"),
             (country_id, workspace),
-        )
-        conn.commit()
-        # rowcount is how many rows were deleted. 0 means that id didn't
-        # exist (or belongs to another workspace, which looks the same to you).
-        if cursor.rowcount == 0:
+        ).fetchone()
+        if country is None:
             raise HTTPException(status_code=404, detail="Country not found.")
+        conn.execute(sql("DELETE FROM countries WHERE id = ?"), (country_id,))
+
+        # Keep Trips in sync: trips only to this country are removed, and
+        # trips to several countries just drop this one.
+        name = country["name"].lower()
+        rows = conn.execute(
+            sql("SELECT id, countries FROM trips WHERE workspace_id = ?"), (workspace,)
+        ).fetchall()
+        for row in rows:
+            countries = split_list(row["countries"])
+            remaining = [c for c in countries if c.lower() != name]
+            if len(remaining) == len(countries):
+                continue
+            if remaining:
+                conn.execute(
+                    sql("UPDATE trips SET countries = ? WHERE id = ?"), (",".join(remaining), row["id"])
+                )
+            else:
+                conn.execute(sql("DELETE FROM trips WHERE id = ?"), (row["id"],))
+        conn.commit()
     finally:
         conn.close()
 
@@ -750,13 +767,23 @@ def update_trip(trip_id: int, trip: TripInput, workspace: str = Depends(get_work
 def delete_trip(trip_id: int, workspace: str = Depends(get_workspace)):
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            sql("DELETE FROM trips WHERE id = ? AND workspace_id = ?"),
+        trip = conn.execute(
+            sql("SELECT * FROM trips WHERE id = ? AND workspace_id = ?"),
             (trip_id, workspace),
-        )
-        conn.commit()
-        if cursor.rowcount == 0:
+        ).fetchone()
+        if trip is None:
             raise HTTPException(status_code=404, detail="Trip not found.")
+        conn.execute(sql("DELETE FROM trips WHERE id = ?"), (trip_id,))
+
+        # Keep Been in sync: a country that no other trip visits goes too.
+        still_visited = trips_by_country(conn, workspace)
+        for name in split_list(trip["countries"]):
+            if name.lower() not in still_visited:
+                conn.execute(
+                    sql("DELETE FROM countries WHERE workspace_id = ? AND LOWER(name) = LOWER(?)"),
+                    (workspace, name),
+                )
+        conn.commit()
     finally:
         conn.close()
 

@@ -481,3 +481,28 @@ def test_adding_a_country_also_adds_a_trip(client):
     assert ghana_trip["start_date"] == main.date.today().isoformat()
     ghana = next(c for c in client.get("/api/countries", headers=ALICE).json() if c["name"] == "Ghana")
     assert ghana["visited_date"] == main.date.today().isoformat()
+
+
+def test_deleting_a_trip_removes_countries_only_it_visited(client):
+    first = client.post("/api/trips", json=trip_body(countries=["France", "Italy"]), headers=ALICE).json()
+    client.post("/api/trips", json=trip_body(title="Rome again", countries=["Italy"]), headers=ALICE)
+
+    assert client.delete(f"/api/trips/{first['id']}", headers=ALICE).status_code == 204
+    names = [c["name"] for c in client.get("/api/countries", headers=ALICE).json()]
+    assert names == ["Italy"]  # France was only on the deleted trip; Italy has another trip
+
+    assert client.delete("/api/trips/9999", headers=ALICE).status_code == 404
+
+
+def test_removing_a_country_updates_its_trips(client):
+    client.post("/api/trips", json=trip_body(title="Euro", countries=["France", "Italy"]), headers=ALICE)
+    client.post("/api/trips", json=trip_body(title="Paris", countries=["France"]), headers=ALICE)
+    france = next(c for c in client.get("/api/countries", headers=ALICE).json() if c["name"] == "France")
+
+    assert client.delete(f"/api/countries/{france['id']}", headers=ALICE).status_code == 204
+    trips = client.get("/api/trips", headers=ALICE).json()
+    assert [(t["title"], t["countries"]) for t in trips] == [("Euro", ["Italy"])]  # Paris trip gone
+
+    # Other workspaces can't delete it.
+    italy = client.get("/api/countries", headers=ALICE).json()[0]
+    assert client.delete(f"/api/countries/{italy['id']}", headers=BOB).status_code == 404
