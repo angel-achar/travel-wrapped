@@ -7,7 +7,7 @@ import FilterBar from "@/components/common/FilterBar";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/StatusViews";
 import TripCard from "@/components/trips/TripCard";
 import { errorMessage, getTrips, type Trip } from "@/lib/api";
-import { filterAndSortTrips, type TripSort } from "@/lib/filters";
+import { filterAndSortTrips, tripYears, type TripSort } from "@/lib/filters";
 
 type Status = "loading" | "error" | "ready";
 
@@ -30,6 +30,7 @@ export default function TripsPage() {
   const [search, setSearch] = useState("");
   const [continent, setContinent] = useState("all");
   const [sort, setSort] = useState<TripSort>("newest");
+  const [year, setYear] = useState("all");
 
   useEffect(() => {
     getTrips()
@@ -48,7 +49,7 @@ export default function TripsPage() {
     setReloadKey((key) => key + 1);
   }
 
-  const visibleTrips = filterAndSortTrips(trips, search, continent, sort);
+  const visibleTrips = filterAndSortTrips(trips, search, continent, sort, year);
 
   return (
     <PageLayout title="Trips" subtitle="Every trip you've taken, in one place." actions={newTripButton}>
@@ -79,6 +80,9 @@ export default function TripsPage() {
             searchPlaceholder="Search by title, country, or city"
             continent={continent}
             onContinentChange={setContinent}
+            year={year}
+            onYearChange={setYear}
+            years={tripYears(trips)}
           >
             <label>
               <span className="sr-only">Sort by</span>

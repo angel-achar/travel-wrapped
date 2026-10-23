@@ -6,17 +6,24 @@ type FilterBarProps = {
   searchPlaceholder: string;
   continent: string; // "all" or a continent name
   onContinentChange: (value: string) => void;
+  // Optional year dropdown: "all" or a year like "2024", plus the years to offer.
+  year?: string;
+  onYearChange?: (value: string) => void;
+  years?: string[];
   // Extra controls, like the trips page's sort dropdown.
   children?: React.ReactNode;
 };
 
-// The search box + continent dropdown used above the country and trip lists.
+// The search box + continent (and optional year) dropdowns above the country and trip lists.
 export default function FilterBar({
   search,
   onSearchChange,
   searchPlaceholder,
   continent,
   onContinentChange,
+  year,
+  onYearChange,
+  years = [],
   children,
 }: FilterBarProps) {
   const inputClass =
@@ -50,6 +57,24 @@ export default function FilterBar({
           ))}
         </select>
       </label>
+
+      {year !== undefined && onYearChange && (
+        <label>
+          <span className="sr-only">Year</span>
+          <select
+            value={year}
+            onChange={(event) => onYearChange(event.target.value)}
+            className={`w-full ${inputClass}`}
+          >
+            <option value="all">All years</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {children}
     </div>

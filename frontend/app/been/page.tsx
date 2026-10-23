@@ -23,7 +23,7 @@ import {
   type NewCountry,
   type Stats,
 } from "@/lib/api";
-import { filterCountries } from "@/lib/filters";
+import { countryYears, filterCountries, statsForCountries } from "@/lib/filters";
 
 // The page is always in exactly one of these three states.
 type Status = "loading" | "error" | "ready";
@@ -53,6 +53,7 @@ export default function BeenPage() {
   // Search box and continent dropdown above the list.
   const [search, setSearch] = useState("");
   const [continent, setContinent] = useState("all");
+  const [year, setYear] = useState("all");
 
   // Runs when the page first appears, and again whenever reloadKey changes.
   useEffect(() => {
@@ -104,7 +105,10 @@ export default function BeenPage() {
   }
 
   // Recomputed on every render, so it always matches the current filters.
-  const visibleCountries = filterCountries(countries, search, continent);
+  const visibleCountries = filterCountries(countries, search, continent, year);
+  // The stats and chart follow the year filter (but not the search or continent).
+  const shownStats =
+    stats && year !== "all" ? statsForCountries(filterCountries(countries, "", "all", year), stats) : stats;
 
   return (
     <PageLayout title="Been Tracker" subtitle="Every country you've visited. Adding a country also adds a trip, and trips you log show up here.">
@@ -123,15 +127,15 @@ export default function BeenPage() {
       {/* Ready state: show stats, form, and list */}
       {status === "ready" && stats && (
         <div className="mt-8 space-y-8">
-          <StatsCard stats={stats} />
+          <StatsCard stats={shownStats ?? stats} year={year} />
 
           <div className="grid gap-8 md:grid-cols-[1fr_1.4fr]">
             <div className="space-y-8">
               <AddCountryForm onAdd={handleAdd} />
 
               <section className="rounded-3xl bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-xl font-bold">By continent</h2>
-                <ContinentBarChart data={stats.by_continent} />
+                <h2 className="mb-4 text-xl font-bold">By continent{year !== "all" && ` in ${year}`}</h2>
+                <ContinentBarChart data={(shownStats ?? stats).by_continent} />
               </section>
             </div>
 
@@ -159,6 +163,9 @@ export default function BeenPage() {
                     searchPlaceholder="Search countries or cities"
                     continent={continent}
                     onContinentChange={setContinent}
+                    year={year}
+                    onYearChange={setYear}
+                    years={countryYears(countries)}
                   />
                   <p role="alert" aria-live="assertive" className="text-sm font-medium text-red-600">
                     {deleteError}

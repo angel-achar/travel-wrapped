@@ -1,7 +1,7 @@
 // Tests for the plain (non-React) logic files.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Trip } from "@/lib/api";
-import { filterAndSortTrips } from "@/lib/filters";
+import type { Country, Trip } from "@/lib/api";
+import { countryYears, filterAndSortTrips, filterCountries, statsForCountries, tripYears } from "@/lib/filters";
 import { getRecommendations } from "@/lib/recommendations";
 import { validateTrip } from "@/lib/tripValidation";
 import { getWorkspaceId } from "@/lib/workspace";
@@ -110,5 +110,54 @@ describe("getWorkspaceId", () => {
     // It's remembered after leaving the link.
     window.history.pushState({}, "", "/");
     expect(getWorkspaceId()).toBe("demo");
+  });
+});
+
+describe("year filters", () => {
+  const base = { continent: "Asia", cities: [], notes: "" };
+  const countries: Country[] = [
+    { ...base, id: 1, name: "Japan", visited_date: "2025-03-14", trips: [{ id: 1, title: "Spring", start_date: "2025-03-14" }] },
+    { ...base, id: 2, name: "Thailand", visited_date: "2023-12-20", trips: [{ id: 2, title: "Back again", start_date: "2024-02-01" }] },
+    { ...base, id: 3, name: "Vietnam", visited_date: null, trips: [] },
+  ];
+
+  it("filters countries by visit year or a trip that year", () => {
+    expect(filterCountries(countries, "", "all", "2025").map((c) => c.name)).toEqual(["Japan"]);
+    expect(filterCountries(countries, "", "all", "2024").map((c) => c.name)).toEqual(["Thailand"]);
+    expect(filterCountries(countries, "", "all", "all")).toHaveLength(3);
+    expect(countryYears(countries)).toEqual(["2025", "2024", "2023"]);
+  });
+
+  it("filters trips by the year they started", () => {
+    const trip = (title: string, start: string): Trip => ({
+      id: 0, title, start_date: start, end_date: start, days: 1, countries: ["Japan"],
+      continents: ["Asia"], cities: [], hotels: [], restaurants: [], activities: [], notes: "",
+    });
+    const trips = [trip("A", "2024-06-01"), trip("B", "2025-01-02"), trip("C", "2024-12-30")];
+    expect(filterAndSortTrips(trips, "", "all", "newest", "2024").map((t) => t.title)).toEqual(["C", "A"]);
+    expect(tripYears(trips)).toEqual(["2025", "2024"]);
+  });
+});
+
+describe("statsForCountries", () => {
+  it("recounts countries, continents, percent, and cities for a subset", () => {
+    const base = {
+      countries_visited: 99, total_countries: 195, percent_of_world: 50, cities_visited: 99, continents_visited: 6,
+      by_continent: [], top_continent: "Europe", total_trips: 9, total_trip_days: 82,
+    };
+    const make = (id: number, name: string, continent: string, cities: string[]): Country => ({
+      id, name, continent, cities, visited_date: "2024-01-01", notes: "", trips: [],
+    });
+    const stats = statsForCountries(
+      [make(1, "France", "Europe", ["Paris"]), make(2, "Italy", "Europe", ["Rome", "paris"]), make(3, "Peru", "South America", [])],
+      base,
+    );
+    expect(stats.countries_visited).toBe(3);
+    expect(stats.percent_of_world).toBe(1.5);
+    expect(stats.continents_visited).toBe(2);
+    expect(stats.top_continent).toBe("Europe");
+    expect(stats.cities_visited).toBe(2); // Paris counted once
+    expect(stats.by_continent.find((c) => c.continent === "Europe")?.countries).toBe(2);
+    expect(stats.total_trips).toBe(9); // untouched fields carry over
   });
 });
