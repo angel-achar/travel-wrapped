@@ -40,9 +40,6 @@ export function buildSlides(wrapped: Wrapped): Slide[] {
       color: "purple",
     },
   ];
-  if (wrapped.top_destination) {
-    slides.push({ key: "top", emoji: "⭐", label: "Your top destination", text: wrapped.top_destination, color: "pink" });
-  }
   if (wrapped.longest_trip) {
     slides.push({
       key: "longest",

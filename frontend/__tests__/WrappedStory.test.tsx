@@ -25,9 +25,9 @@ describe("buildSlides", () => {
     expect(slides.at(-1)?.text).toBe("The Explorer");
   });
 
-  it("skips slides with nothing to show", () => {
-    const keys = buildSlides({ ...wrapped, top_destination: null, longest_trip: null, cities: [] }).map((s) => s.key);
-    expect(keys).not.toContain("top");
+  it("skips slides with nothing to show, and never shows a top destination", () => {
+    expect(buildSlides(wrapped).map((s) => s.key)).not.toContain("top");
+    const keys = buildSlides({ ...wrapped, longest_trip: null, cities: [] }).map((s) => s.key);
     expect(keys).not.toContain("longest");
     expect(keys).not.toContain("cities");
   });

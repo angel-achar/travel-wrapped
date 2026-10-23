@@ -35,6 +35,8 @@ export default function RecommendationsPage() {
   // countries you've visited (see lib/recommendations.ts for the rules).
   const visitedNames = countries.map((country) => country.name);
   const recommendations = getRecommendations(visitedNames);
+  // Only promise a "new continent" pick when there's one to show.
+  const hasNewContinentPick = recommendations.some((rec) => rec.isNewContinent);
 
   return (
     <PageLayout
@@ -62,8 +64,10 @@ export default function RecommendationsPage() {
         <div className="mt-8 space-y-6">
           <p className="text-sm text-purple-700">
             How it works: we look at the continents where you&apos;ve visited the most countries and
-            suggest popular places there you haven&apos;t been yet, plus one pick on a continent
-            you haven&apos;t explored.
+            suggest popular places there you haven&apos;t been yet
+            {hasNewContinentPick
+              ? ", plus one pick on a continent you haven't explored."
+              : ". You've been to every continent, so all of these come from your favorites."}
           </p>
 
           {recommendations.length === 0 ? (

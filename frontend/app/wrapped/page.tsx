@@ -6,6 +6,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/StatusViews";
 import WrappedCard from "@/components/wrapped/WrappedCard";
 import WrappedStory from "@/components/wrapped/WrappedStory";
+import PersonalityLegend from "@/components/wrapped/PersonalityLegend";
 import { errorMessage, getWrapped, type Wrapped } from "@/lib/api";
 
 type Status = "loading" | "error" | "ready";
@@ -142,12 +143,6 @@ export default function WrappedPage() {
               value={String(wrapped.countries.length)}
               detail={wrapped.countries.join(", ")}
             />
-            <WrappedCard
-              emoji="⭐"
-              label="Top destination"
-              value={wrapped.top_destination ?? "—"}
-              color="pink"
-            />
             {wrapped.longest_trip && (
               <WrappedCard
                 emoji="🏆"
@@ -164,13 +159,16 @@ export default function WrappedPage() {
               value={String(wrapped.continents.length)}
               detail={wrapped.continents.join(", ")}
             />
+            <WrappedCard
+              emoji="📍"
+              label={wrapped.cities.length === 1 ? "City" : "Cities"}
+              value={String(wrapped.cities.length)}
+              detail={wrapped.cities.slice(0, 4).join(", ") + (wrapped.cities.length > 4 ? ", …" : "")}
+              color="pink"
+            />
           </div>
 
-          {wrapped.cities.length > 0 && (
-            <p className="text-center text-purple-700">
-              📍 {wrapped.cities.length} cities, including {wrapped.cities.slice(0, 4).join(", ")}
-            </p>
-          )}
+          <PersonalityLegend current={wrapped.personality} />
         </div>
       )}
     </PageLayout>
